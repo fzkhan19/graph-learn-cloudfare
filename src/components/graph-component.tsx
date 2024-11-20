@@ -181,7 +181,9 @@ const renderContent = (content: NodeContent) => {
 			);
 		case "text":
 			return (
-				<div className="h-full w-full rounded-lg bg-white">{content.text}</div>
+				<div className="flex h-full w-full items-center justify-center rounded-lg text-2xl dark:bg-black dark:text-white">
+					{content.text}
+				</div>
 			);
 	}
 };

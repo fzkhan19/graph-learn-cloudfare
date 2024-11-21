@@ -1,8 +1,8 @@
 "use client";
 
 import {
+	Controls,
 	type Edge,
-	PanOnScrollMode,
 	Position,
 	ReactFlow,
 	useEdgesState,
@@ -18,10 +18,12 @@ import { graphData } from "@/constants/graph-data"; // Adjust path accordingly
 type NodeType = "video" | "webpage" | "text";
 
 interface NodeContent {
+	id: number;
 	type: NodeType;
 	url?: string;
 	text?: string;
 	title: string;
+	parentId: number | null;
 }
 
 interface Relationship {
@@ -48,11 +50,12 @@ const generatePositions = (
 	relationships: Relationship[],
 	startPosition = { x: 100, y: 100 },
 	padding = 100,
-	horizontalSpacing = 100,
+	horizontalSpacing = 200,
 ) => {
 	const positions: { x: number; y: number }[] = [];
 	const placedNodes = new Set<number>();
 	const childrenMap = new Map<number, number[]>();
+	const subtreeWidths = new Map<number, number>(); // Track subtree widths for bottom-up calculation
 
 	// Build a map of parent -> children relationships
 	for (const { source, target } of relationships) {
@@ -62,11 +65,36 @@ const generatePositions = (
 		childrenMap.get(source)?.push(target);
 	}
 
+	// Recursive function to calculate subtree width
+	const calculateSubtreeWidth = (nodeIndex: number): number => {
+		const children = childrenMap.get(nodeIndex) || [];
+		if (children.length === 0) {
+			const nodeDimensions = getNodeDimensions(contents[nodeIndex].type);
+			return nodeDimensions.width;
+		}
+
+		const totalWidth = children.reduce(
+			(total, childIndex) =>
+				total + calculateSubtreeWidth(childIndex) + horizontalSpacing,
+			-horizontalSpacing, // Subtract last spacing
+		);
+
+		subtreeWidths.set(nodeIndex, totalWidth);
+		return totalWidth;
+	};
+
+	// Start by calculating all subtree widths
+	contents.forEach((_, index) => {
+		if (!subtreeWidths.has(index)) {
+			calculateSubtreeWidth(index);
+		}
+	});
+
 	// Place the first node at the starting position
 	positions[0] = startPosition;
 	placedNodes.add(0);
 
-	// Place child nodes horizontally
+	// Recursive function to place nodes based on calculated subtree widths
 	const placeChildren = (sourceIndex: number) => {
 		const children = childrenMap.get(sourceIndex) || [];
 		if (children.length === 0) return;
@@ -74,13 +102,10 @@ const generatePositions = (
 		const sourcePosition = positions[sourceIndex];
 		const sourceDimensions = getNodeDimensions(contents[sourceIndex].type);
 
-		// Calculate total width of all children
-		const childrenTotalWidth = children.reduce((total, childIndex) => {
-			const childDimensions = getNodeDimensions(contents[childIndex].type);
-			return total + childDimensions.width + horizontalSpacing;
-		}, -horizontalSpacing); // Subtract last spacing
+		// Calculate total subtree width for children
+		const childrenTotalWidth = subtreeWidths.get(sourceIndex) || 0;
 
-		// Start x position for first child (center aligned)
+		// Start x position for the first child
 		let currentX =
 			sourcePosition.x + (sourceDimensions.width - childrenTotalWidth) / 2;
 
@@ -93,20 +118,33 @@ const generatePositions = (
 				y: sourcePosition.y + sourceDimensions.height + padding,
 			};
 
-			currentX += childDimensions.width + horizontalSpacing;
+			currentX +=
+				subtreeWidths.get(childIndex) ||
+				childDimensions.width + horizontalSpacing - 50;
 			placedNodes.add(childIndex);
 
 			// Recursively place this child's children
 			placeChildren(childIndex);
 		}
-	};
-	// Initialize positions and start placement from root
-	contents.forEach((_, index) => {
-		if (positions[index] === undefined) {
-			positions[index] = { x: 0, y: 0 };
-		}
-	});
 
+		// Center the parent node relative to its children
+		if (children.length > 0) {
+			const firstChildIndex = children[0];
+			const lastChildIndex = children[children.length - 1];
+			const firstChildPos = positions[firstChildIndex];
+			const lastChildPos = positions[lastChildIndex];
+			const parentCenterX =
+				(firstChildPos.x +
+					getNodeDimensions(contents[firstChildIndex].type).width / 2 +
+					lastChildPos.x +
+					getNodeDimensions(contents[lastChildIndex].type).width / 2) /
+				2;
+
+			positions[sourceIndex].x = parentCenterX - sourceDimensions.width / 2;
+		}
+	};
+
+	// Begin placement from root
 	placeChildren(0);
 
 	return positions;
@@ -114,34 +152,67 @@ const generatePositions = (
 
 // Generate nodes with dimensions and position
 const generateNodes = (
-	contents: NodeContent[],
-	relationships: Relationship[],
+	nodes: NodeContent[],
 	startPosition = { x: 100, y: 100 },
 ) => {
-	const positions = generatePositions(contents, relationships, startPosition);
+	// Create relationships array from parentId
+	const relationships = nodes
+		.filter((node) => node.parentId)
+		.map((node) => ({
+			source: nodes.findIndex((n) => n.id === node.parentId),
+			target: nodes.findIndex((n) => n.id === node.id),
+		}));
 
-	return contents.map((content, index) => {
-		const dimensions = getNodeDimensions(content.type);
+	const positions = generatePositions(nodes, relationships, startPosition);
+
+	// Create title node
+	const titleNode = {
+		id: "title",
+		position: {
+			x: positions[0].x - 100, // Adjust x position relative to first node
+			y: positions[0].y - 200, // Place it above the first node
+		},
+		data: {
+			label: (
+				<div className="flex h-full w-full items-center justify-center">
+					<h1 className="font-bold font-ur text-6xl text-gray-800 dark:text-white">
+						{graphData.title}
+					</h1>
+				</div>
+			),
+		},
+		style: {
+			width: 1000,
+			height: 100,
+			padding: "8px",
+			background: "transparent",
+			border: "none",
+			pointerEvents: "none",
+			boxShadow: "none",
+		},
+	};
+
+	const regularNodes = nodes.map((node, index) => {
+		const dimensions = getNodeDimensions(node.type);
 		return {
-			id: `node-${index + 1}`,
-			position: positions[index], // Use the generated position
+			id: node.id,
+			position: positions[index],
 			sourcePosition: Position.Bottom,
 			targetPosition: Position.Top,
 			data: {
 				label: (
 					<div className="relative h-full w-full">
-						{(content.type === "webpage" || content.type === "video") &&
-							content.url && (
-								<Link
-									href={content.url}
-									target="_blank"
-									rel="noopener noreferrer"
-									className="-top-10 absolute right-0 flex items-center gap-2 text-gray-600 text-lg hover:text-blue-500"
-								>
-									Open {content.title} <ExternalLink size={18} />
-								</Link>
-							)}
-						{renderContent(content)}
+						{(node.type === "webpage" || node.type === "video") && node.url && (
+							<Link
+								href={node.url}
+								target="_blank"
+								rel="noopener noreferrer"
+								className="-top-10 absolute right-0 flex items-center gap-2 text-gray-600 text-lg hover:text-blue-500"
+							>
+								Open {node.title} <ExternalLink size={18} />
+							</Link>
+						)}
+						{renderContent(node)}
 					</div>
 				),
 			},
@@ -155,6 +226,8 @@ const generateNodes = (
 			},
 		};
 	});
+
+	return [titleNode, ...regularNodes];
 };
 
 // Render the content of the nodes based on their type
@@ -208,50 +281,95 @@ const calculateTranslateExtent = (
 
 	// Adjust translate extent to fit all nodes without infinite panning
 	return [
-		[startX, startY - 200], // Padding to prevent edge cutoff
+		[startX, startY - 500], // Padding to prevent edge cutoff
 		[endX, endY + 200], // Padding to prevent edge cutoff
 	];
 };
 
 export default function GraphComponent() {
-	const { contents, relationships } = graphData;
+	const { nodes } = graphData;
 
-	const initialEdges: Edge[] = relationships.map((rel) => ({
-		id: `e${rel.source + 1}-${rel.target + 1}`,
-		source: `node-${rel.source + 1}`,
-		target: `node-${rel.target + 1}`,
-		type: "default",
-		style: { strokeWidth: 2 },
-	}));
+	// Generate edges from parentId relationships
+	const initialEdges: Edge[] = nodes
+		.filter((node) => node.parentId !== null)
+		.map((node) => ({
+			id: `e${node.parentId}-${node.id}`,
+			source: node.parentId.toString(),
+			target: node.id.toString(),
+			type: "smoothstep",
+			style: {
+				strokeWidth: 2,
+				strokeDasharray: 5,
+				animation: "dashdraw 1s linear infinite",
+			},
+		}));
 
-	const [nodes] = useNodesState(
-		generateNodes(contents as NodeContent[], relationships),
+	const [graphNodes] = useNodesState(
+		generateNodes(
+			nodes.map((node) => ({
+				...node,
+				id: Number(node.id),
+				parentId: node.parentId !== null ? Number(node.parentId) : null,
+				type: node.type as NodeType,
+			})),
+		).map((node) => ({
+			...node,
+			id: node.id.toString(),
+			style: {
+				...node.style,
+				pointerEvents: (node.style as React.CSSProperties).pointerEvents,
+			},
+		})),
 	);
 	const [edges] = useEdgesState(initialEdges);
 
-	// Calculate translate extent based on node positions
-	const positions = generatePositions(contents as NodeContent[], relationships);
+	const positions = generatePositions(
+		nodes.map((node) => ({
+			...node,
+			id: Number(node.id),
+			parentId: node.parentId !== null ? Number(node.parentId) : null,
+			type: node.type as NodeType,
+		})),
+		nodes
+			.filter((node) => node.parentId)
+			.map((node) => ({
+				source: nodes.findIndex((n) => n.id === node.parentId?.toString()),
+				target: nodes.findIndex((n) => n.id === node.id),
+			})),
+	);
+
 	const translateExtent = calculateTranslateExtent(
 		positions,
-		contents as NodeContent[],
+		nodes.map((node) => ({
+			...node,
+			id: Number.parseInt(node.id.toString()),
+			parentId:
+				node.parentId !== null
+					? Number.parseInt(node.parentId.toString())
+					: null,
+			type: node.type as NodeType,
+		})) as NodeContent[],
 	);
 
 	return (
 		<div className="h-full w-full">
 			<ReactFlow
-				nodes={nodes}
+				nodes={graphNodes}
 				edges={edges}
+				fitView
 				zoomOnScroll={false}
-				panOnDrag={false}
+				panOnDrag={true}
 				panOnScroll={true}
-				panOnScrollMode={PanOnScrollMode.Vertical}
-				maxZoom={0.5}
-				minZoom={0.5}
+				minZoom={0.1}
 				zoomOnDoubleClick={false}
-				zoomOnPinch={false}
+				zoomOnPinch={true}
 				nodesDraggable={false}
+				nodesFocusable={false}
+				edgesFocusable={false}
 				translateExtent={translateExtent}
-			/>
+			>
+				<Controls />
+			</ReactFlow>
 		</div>
 	);
 }

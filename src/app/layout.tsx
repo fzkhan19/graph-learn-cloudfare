@@ -4,7 +4,7 @@ import { JSON_LD, METADATA } from "@/constants/Metadata";
 import { cn } from "@/lib/utils";
 import { Analytics } from "@vercel/analytics/react";
 import type { Metadata } from "next";
-import { Inter, Urbanist } from "next/font/google";
+import { Inter, Oswald } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 
@@ -14,10 +14,9 @@ const inter = Inter({
 	variable: "--font-in",
 });
 
-const manrope = Urbanist({
+const oswald = Oswald({
 	subsets: ["latin"],
-	display: "swap",
-	variable: "--font-ur",
+	variable: "--font-os",
 });
 
 export const metadata: Metadata = METADATA;
@@ -29,8 +28,8 @@ export default function RootLayout({
 }>) {
 	return (
 		<html lang="en" suppressHydrationWarning>
-			<body className={cn("", inter.variable, manrope.variable)}>
-				<main className="no-scrollbar overflow-x-hidden overflow-y-scroll scroll-smooth font-in">
+			<body className={cn("", inter.variable, oswald.variable)}>
+				<main className="no-scrollbar overflow-x-hidden overflow-y-scroll scroll-smooth font-os">
 					<Analytics />
 					<Script
 						// biome-ignore lint/security/noDangerouslySetInnerHtml: <explanation>

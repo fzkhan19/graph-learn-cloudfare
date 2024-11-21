@@ -1,48 +1,26 @@
-// data.js (or data.json)
 export const graphData = {
-	contents: [
+	title: "THE HOLY GRAIL OF WEB DEV",
+	nodes: [
 		{
+			id: "1",
 			type: "video",
-			url: "https://www.youtube.com/embed/dQw4w9WgXcQ",
-			title: "Featured Video",
+			url: "https://www.youtube.com/embed/ok-plXXHlWw?si=e6xWsb3Qw_-6Peg3",
+			title: "HTML in 100 Seconds",
+			parentId: null,
 		},
 		{
-			type: "webpage",
-			url: "https://nextjs.org/",
-			title: "Next.js Documentation",
+			id: "2",
+			type: "video",
+			url: "https://www.youtube.com/embed/OEV8gMkCHXQ?si=rDC_YP9R0aKE-GzO",
+			title: "CSS in 100 Seconds",
+			parentId: 1,
 		},
 		{
-			type: "webpage",
-			url: "https://nextjs.org/",
-			title: "Next.js Documentation",
+			id: "3",
+			type: "video",
+			url: "https://www.youtube.com/embed/DHjqpvDnNGE?si=K1Aa9wUS1VMbRIJ-",
+			title: "JS in 100 Seconds",
+			parentId: 1,
 		},
-		{
-			type: "text",
-			text: "This is a dynamic text node",
-			title: "Text Note",
-		},
-		{
-			type: "text",
-			text: "This is a dynamic text node",
-			title: "Text Note",
-		},
-		{
-			type: "text",
-			text: "This is a dynamic text node",
-			title: "Text Note",
-		},
-		{
-			type: "text",
-			text: "This is a dynamic text node",
-			title: "Text Note",
-		},
-	],
-	relationships: [
-		{ source: 0, target: 1 },
-		{ source: 0, target: 2 },
-		{ source: 1, target: 3 },
-		{ source: 1, target: 4 },
-		{ source: 2, target: 5 },
-		{ source: 2, target: 6 },
 	],
 };

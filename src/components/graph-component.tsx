@@ -175,7 +175,7 @@ const generateNodes = (
 		data: {
 			label: (
 				<div className="flex h-full w-full items-center justify-center">
-					<h1 className="font-bold font-ur text-6xl text-gray-800 dark:text-white">
+					<h1 className="font-bold font-os text-6xl text-gray-800 dark:text-white">
 						{graphData.title}
 					</h1>
 				</div>

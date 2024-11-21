@@ -29,7 +29,7 @@ export default function RootLayout({
 	return (
 		<html lang="en" suppressHydrationWarning>
 			<body className={cn("", inter.variable, oswald.variable)}>
-				<main className="no-scrollbar overflow-x-hidden overflow-y-scroll scroll-smooth font-os">
+				<main className="no-scrollbar overflow-x-hidden overflow-y-scroll scroll-smooth font-in">
 					<Analytics />
 					<Script
 						// biome-ignore lint/security/noDangerouslySetInnerHtml: <explanation>

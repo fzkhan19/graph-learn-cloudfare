@@ -22,7 +22,7 @@ const config = {
 		},
 		extend: {
 			fontFamily: {
-				mr: ["var(--font-mr)"],
+				os: ["var(--font-os)"],
 				in: ["var(--font-in)"],
 			},
 			colors: {

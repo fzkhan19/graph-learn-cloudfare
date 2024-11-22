@@ -15,6 +15,7 @@ import Link from "next/link";
 
 // Import the data from the constant
 import { graphData } from "@/constants/graph-data"; // Adjust path accordingly
+import { cn } from "@/lib/utils";
 import { useTheme } from "next-themes";
 import FlickeringGrid from "./ui/flickering-grid";
 
@@ -168,17 +169,19 @@ const generateNodes = (
 
 	const positions = generatePositions(nodes, relationships, startPosition);
 
+	const titleXmargin =
+		nodes[0].type === "text" ? 250 : nodes[0].type === "video" ? 100 : 50;
 	// Create title node
 	const titleNode = {
 		id: "title",
 		position: {
-			x: positions[0].x - 100, // Adjust x position relative to first node
+			x: positions[0].x - titleXmargin, // Adjust x position relative to first node
 			y: positions[0].y - 200, // Place it above the first node
 		},
 		data: {
 			label: (
 				<div className="flex h-full w-full items-center justify-center">
-					<h1 className="font-bold font-os text-6xl text-gray-800 dark:text-white">
+					<h1 className="font-extrabold font-os text-7xl dark:text-white">
 						{graphData.title}
 					</h1>
 				</div>
@@ -257,7 +260,13 @@ const renderContent = (content: NodeContent) => {
 			);
 		case "text":
 			return (
-				<div className="flex h-full w-full items-center justify-center rounded-lg text-2xl dark:bg-black dark:text-white">
+				<div
+					className={cn(
+						"flex h-full w-full items-center justify-center",
+						"text-balance p-4 font-medium font-os text-3xl",
+						"dark:bg-black dark:text-white",
+					)}
+				>
 					{content.text}
 				</div>
 			);
@@ -314,7 +323,10 @@ export default function GraphComponent() {
 				id: Number(node.id),
 				parentId: node.parentId !== null ? Number(node.parentId) : null,
 				type: node.type as NodeType,
-			})),
+				title: node.title || "",
+				url: node.url || "",
+				text: node.text || "",
+			})) as NodeContent[],
 		).map((node) => ({
 			...node,
 			id: node.id.toString(),
@@ -332,6 +344,9 @@ export default function GraphComponent() {
 			id: Number(node.id),
 			parentId: node.parentId !== null ? Number(node.parentId) : null,
 			type: node.type as NodeType,
+			title: node.title || "",
+			url: node.url || "",
+			text: node.text || "",
 		})),
 		nodes
 			.filter((node) => node.parentId)

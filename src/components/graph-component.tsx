@@ -1,6 +1,7 @@
 "use client";
 
 import {
+	type ColorMode,
 	Controls,
 	type Edge,
 	Position,
@@ -14,6 +15,8 @@ import Link from "next/link";
 
 // Import the data from the constant
 import { graphData } from "@/constants/graph-data"; // Adjust path accordingly
+import { useTheme } from "next-themes";
+import FlickeringGrid from "./ui/flickering-grid";
 
 type NodeType = "video" | "webpage" | "text";
 
@@ -351,6 +354,8 @@ export default function GraphComponent() {
 		})) as NodeContent[],
 	);
 
+	const { theme } = useTheme();
+
 	return (
 		<div className="h-full w-full">
 			<ReactFlow
@@ -367,7 +372,14 @@ export default function GraphComponent() {
 				nodesFocusable={false}
 				edgesFocusable={false}
 				translateExtent={translateExtent}
+				colorMode={theme as ColorMode}
 			>
+				<FlickeringGrid
+					color={theme === "dark" ? "rgb(245, 231, 254)" : "rgb(53, 4, 110)"}
+					flickerChance={0.1}
+					squareSize={10}
+					maxOpacity={0.03}
+				/>
 				<Controls />
 			</ReactFlow>
 		</div>

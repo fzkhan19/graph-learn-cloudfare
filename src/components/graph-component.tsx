@@ -54,7 +54,7 @@ const generatePositions = (
 	relationships: Relationship[],
 	startPosition = { x: 100, y: 100 },
 	padding = 100,
-	horizontalSpacing = 200,
+	horizontalSpacing = 300,
 ) => {
 	const positions: { x: number; y: number }[] = [];
 	const placedNodes = new Set<number>();
@@ -77,11 +77,19 @@ const generatePositions = (
 			return nodeDimensions.width;
 		}
 
-		const totalWidth = children.reduce(
+		let totalWidth = children.reduce(
 			(total, childIndex) =>
 				total + calculateSubtreeWidth(childIndex) + horizontalSpacing,
 			-horizontalSpacing, // Subtract last spacing
 		);
+
+		// Check if any child is of type "webpage" and apply extra width
+		const hasWebpageChild = children.some(
+			(childIndex) => contents[childIndex].type === "webpage",
+		);
+		if (hasWebpageChild) {
+			totalWidth += horizontalSpacing; // Add extra spacing if a child is a webpage
+		}
 
 		subtreeWidths.set(nodeIndex, totalWidth);
 		return totalWidth;
@@ -117,6 +125,7 @@ const generatePositions = (
 			if (placedNodes.has(childIndex)) continue;
 
 			const childDimensions = getNodeDimensions(contents[childIndex].type);
+
 			positions[childIndex] = {
 				x: currentX,
 				y: sourcePosition.y + sourceDimensions.height + padding,
@@ -157,6 +166,8 @@ const generatePositions = (
 // Generate nodes with dimensions and position
 const generateNodes = (
 	nodes: NodeContent[],
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+	_theme?: any,
 	startPosition = { x: 100, y: 100 },
 ) => {
 	// Create relationships array from parentId
@@ -226,8 +237,9 @@ const generateNodes = (
 				width: dimensions.width,
 				height: dimensions.height,
 				padding: "8px",
-				borderRadius: "8px",
-				backgroundColor: "white",
+				borderWidth: "1px",
+				borderRadius: "16px",
+				backgroundColor: "transparent",
 				boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
 			},
 		};
@@ -264,7 +276,7 @@ const renderContent = (content: NodeContent) => {
 					className={cn(
 						"flex h-full w-full items-center justify-center",
 						"text-balance p-4 font-medium font-os text-3xl",
-						"dark:bg-black dark:text-white",
+						"bg-white dark:bg-black dark:text-white",
 					)}
 				>
 					{content.text}
@@ -293,13 +305,14 @@ const calculateTranslateExtent = (
 
 	// Adjust translate extent to fit all nodes without infinite panning
 	return [
-		[startX, startY - 500], // Padding to prevent edge cutoff
-		[endX, endY + 200], // Padding to prevent edge cutoff
+		[startX - 500, startY - 500], // Padding to prevent edge cutoff
+		[endX + 500, endY + 200], // Padding to prevent edge cutoff
 	];
 };
 
 export default function GraphComponent() {
 	const { nodes } = graphData;
+	const { theme } = useTheme();
 
 	// Generate edges from parentId relationships
 	const initialEdges: Edge[] = nodes
@@ -327,6 +340,7 @@ export default function GraphComponent() {
 				url: node.url || "",
 				text: node.text || "",
 			})) as NodeContent[],
+			theme,
 		).map((node) => ({
 			...node,
 			id: node.id.toString(),
@@ -368,8 +382,6 @@ export default function GraphComponent() {
 			type: node.type as NodeType,
 		})) as NodeContent[],
 	);
-
-	const { theme } = useTheme();
 
 	return (
 		<div className="h-full w-full">

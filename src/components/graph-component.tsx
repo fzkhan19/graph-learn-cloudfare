@@ -322,11 +322,7 @@ export default function GraphComponent() {
 			source: node.parentId.toString(),
 			target: node.id.toString(),
 			type: "smoothstep",
-			style: {
-				strokeWidth: 2,
-				strokeDasharray: 5,
-				animation: "dashdraw 1s linear infinite",
-			},
+			animated: true,
 		}));
 
 	const [graphNodes] = useNodesState(
